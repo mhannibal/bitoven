@@ -27,10 +27,20 @@ export async function transcribeAudio(options: TranscribeOptions): Promise<strin
     const fileName = Platform.OS === 'web' ? 'recording.webm' : 'recording.m4a';
     const mimeType = Platform.OS === 'web' ? 'audio/webm' : 'audio/m4a';
     
-    // Create File from Blob
-    const audioFile = new File([audioBlob], fileName, { type: mimeType });
+    // For React Native, append Blob directly with metadata
+    // For web, create a File object
+    if (Platform.OS === 'web') {
+      const audioFile = new File([audioBlob], fileName, { type: mimeType });
+      formData.append('file', audioFile);
+    } else {
+      // React Native: Append blob with filename and type as metadata
+      formData.append('file', {
+        uri: audioUri,
+        type: mimeType,
+        name: fileName,
+      } as any);
+    }
     
-    formData.append('file', audioFile);
     formData.append('model', 'whisper-1');
     formData.append('language', language);
 

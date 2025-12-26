@@ -40,13 +40,30 @@ export async function getDefaultCalendar(): Promise<string | null> {
       // Android: Find or create a calendar
       const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
       
-      // Try to find user's primary calendar
+      // Try to find user's primary calendar - prioritize Google Calendar
       let primaryCalendar = calendars.find(
-        (cal) => cal.allowsModifications && cal.source.name === 'Google'
+        (cal) => cal.allowsModifications && cal.isPrimary
       );
       
+      // Fallback to any Google calendar
+      if (!primaryCalendar) {
+        primaryCalendar = calendars.find(
+          (cal) => cal.allowsModifications && (cal.source.name === 'Google' || cal.source.type === 'com.google')
+        );
+      }
+      
+      // Fallback to any writable calendar
       if (!primaryCalendar) {
         primaryCalendar = calendars.find((cal) => cal.allowsModifications);
+      }
+      
+      if (!primaryCalendar && calendars.length > 0) {
+        console.log('Available calendars:', calendars.map(c => ({
+          id: c.id,
+          title: c.title,
+          source: c.source.name,
+          allowsModifications: c.allowsModifications
+        })));
       }
       
       return primaryCalendar?.id || null;
@@ -166,14 +183,21 @@ export async function addTaskToCalendar(
       alarms.push({ relativeOffset: -30 });
     }
     
-    const eventId = await Calendar.createEventAsync(calendarId, {
+    // Use device's default timezone for better Android compatibility
+    const eventDetails: any = {
       title: task.title,
       startDate: startDate,
       endDate: endDate,
-      timeZone: 'UTC',
       alarms: alarms,
       notes: `Priority: ${task.priority || 'normal'}\nCreated by Bithoven`,
-    });
+    };
+    
+    // Only add timeZone for iOS, Android handles it automatically
+    if (Platform.OS === 'ios') {
+      eventDetails.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+    
+    const eventId = await Calendar.createEventAsync(calendarId, eventDetails);
     
     return {
       success: true,

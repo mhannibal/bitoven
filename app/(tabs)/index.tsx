@@ -3,9 +3,11 @@ import { ThemedView } from '@/components/themed-view';
 import { useAudioRecorder } from '@/hooks/use-audio-recorder';
 import { extractTasksFromText } from '@/services/task-extraction';
 import { transcribeAudio } from '@/services/transcription';
+import { Fit, RiveView, useRiveFile } from "@rive-app/react-native";
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+
 
 type Language = 'en' | 'fr' | 'ar';
 
@@ -14,6 +16,43 @@ const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'ar', label: 'العربية', flag: '🇸🇦' },
 ];
+
+
+
+function RiveDemo() {
+  const { riveFile, isLoading, error } = useRiveFile(
+    "https://public.rive.app/community/runtime-files/2195-4346-avatar-pack-use-case.riv"
+  );
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (error || !riveFile) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <Text>Error loading Rive file: {error || "Unknown error"}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <RiveView
+        file={riveFile}
+        artboardName="Avatar 1"
+        stateMachineName="avatar"
+        fit={Fit.Contain}
+        style={{ width: 400, height: 400 }}
+        autoPlay={true}
+      />
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -118,6 +157,7 @@ export default function HomeScreen() {
         )}
       </ThemedView>
 
+<RiveDemo />
       <ThemedView style={styles.footer}>
         <ThemedText style={styles.footerText}>
           Powered by OpenAI Whisper + GPT-4
